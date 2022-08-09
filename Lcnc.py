@@ -430,12 +430,15 @@ class BaseSoC(SoCMini):
         self.sync+=[self.MMIO_inst.wallclock.status.eq(self.MMIO_inst.wallclock.status+1)]
         
         # watchdog prescaler is a 6-bit freerun counter
+	# add LED to watchdog
+	my_led_pad = platform.request("user_led_n")
+	
         self.sync+=[wdt_psc.eq(wdt_psc+1)]
         #watchdog counter is downcounting to zero
         self.sync+=[self.MMIO_inst.res_st_reg.dat_w[watchdog_offs:watchdog_offs+watchdog_size].eq(wdt_count),self.MMIO_inst.res_st_reg.we.eq(True)]
-        self.sync+=[If(self.MMIO_inst.res_st_reg.re == True, wdt_count.eq(self.MMIO_inst.res_st_reg.fields.watchdog))]
+        self.sync+=[If(self.MMIO_inst.res_st_reg.re == True, wdt_count.eq(self.MMIO_inst.res_st_reg.fields.watchdog),my_led_pad/eq(0))]
         #if external reset is tue the watchdog is reset, if watchdog is zero, reset all peripherals
-        self.sync+=[If(external_reset==True,wdt_count.eq(0),global_reset.eq(True)).Elif(wdt_count==0,global_reset.eq(True)).Else(global_reset.eq(False),If(wdt_psc==0,wdt_count.eq(wdt_count-1)))]
+        self.sync+=[If(external_reset==True,wdt_count.eq(0),global_reset.eq(True)).Elif(wdt_count==0,global_reset.eq(True),my_led_pad/eq(1)).Else(global_reset.eq(False),If(wdt_psc==0,wdt_count.eq(wdt_count-1)))]
         #connect external reset
         self.comb+=external_reset.eq(self.ext_reset_in)
  
